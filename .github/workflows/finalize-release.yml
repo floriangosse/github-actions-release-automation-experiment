@@ -1,0 +1,48 @@
+name: Finalize release
+
+on:
+  pull_request_target:
+    types:
+      - closed
+    branches:
+      - main
+
+env:
+  MAIN_BRANCH: main
+  DEVELOP_BRANCH: main
+
+jobs:
+  finalize-release:
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get release version
+        id: version
+        run: |
+          BRANCH_NAME=${{ github.event.pull_request.head.ref }}
+          VERSION=${BRANCH_NAME#release/}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Update changelog
+        run: |
+          sed -i "s/^## Unreleased/## Unreleased\n\n## v${{ steps.version.outputs.version }}/" CHANGELOG.md
+          git add CHANGELOG.md
+
+      - name: Commit and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "finalize release v${{ steps.version.outputs.version }}"
+          git tag -a v${{ steps.version.outputs.version }} -m "Release v${{ steps.version.outputs.version }}"
+          git push origin ${{ github.event.pull_request.base.ref }} --follow-tags
+
+      - name: Merge main branch back into develop
+        run: |
+          git checkout ${{ env.DEVELOP_BRANCH }}
+          git pull origin ${{ env.DEVELOP_BRANCH }}
+          git merge --no-ff ${{ github.event.pull_request.base.ref }}
+          git push origin ${{ env.DEVELOP_BRANCH }}
