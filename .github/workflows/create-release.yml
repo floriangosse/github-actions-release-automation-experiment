@@ -13,12 +13,19 @@ permissions:
 
 env:
   MAIN_BRANCH: main
-  DEVELOP_BRANCH: main
+  DEVELOP_BRANCH: develop
 
 jobs:
   create-release-pr:
     runs-on: ubuntu-latest
     steps:
+      - name: Validate workflow dispatch
+        run: |
+          if [[ "${{ github.ref }}" != "refs/heads/${{ env.DEVELOP_BRANCH }}" ]]; then
+            echo "Workflow dispatch is only allowed on the ${{ env.DEVELOP_BRANCH }} branch"
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
         with:

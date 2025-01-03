@@ -9,7 +9,7 @@ on:
 
 env:
   MAIN_BRANCH: main
-  DEVELOP_BRANCH: main
+  DEVELOP_BRANCH: develop
 
 jobs:
   finalize-release:
