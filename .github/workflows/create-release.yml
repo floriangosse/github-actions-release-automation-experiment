@@ -1,0 +1,46 @@
+name: Create release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number'
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  MAIN_BRANCH: main
+  DEVELOP_BRANCH: main
+
+jobs:
+  create-release-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create release branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b release/${{ github.event.inputs.version }} origin/${{ env.DEVELOP_BRANCH }}
+          git commit --allow-empty -m "chore: start release v${{ github.event.inputs.version }}"
+          git push origin release/${{ github.event.inputs.version }}
+
+      - name: Create pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_BODY: |
+            # Release v${{ github.event.inputs.version }}
+
+            ## Checklist
+            - [ ] Update CHANGELOG.md
+            - [ ] Review version updates
+        run: |
+          gh pr create --fill --title "Release v${{ github.event.inputs.version }}" --body "$PR_BODY" --base ${{ env.MAIN_BRANCH }} --head release/${{ github.event.inputs.version }}
+
